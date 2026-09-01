@@ -1,0 +1,82 @@
+# ==============================
+# Environment Variables
+# ==============================
+.env
+.env.*
+!.env.example
+
+# ==============================
+# Python
+# ==============================
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# ==============================
+# Node / Frontend
+# ==============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ==============================
+# ML Datasets
+# ==============================
+ml/data/raw/*
+ml/data/processed/*
+ml/data/splits/*
+
+# Keep directory structure
+!ml/data/raw/.gitkeep
+!ml/data/processed/.gitkeep
+!ml/data/splits/.gitkeep
+
+# ==============================
+# ML Models
+# ==============================
+ml/models/pretrained/*
+ml/models/checkpoints/*
+ml/models/production/*
+
+# ==============================
+# Audio Files
+# ==============================
+storage/uploads/*
+storage/temp/*
+frontend/assets/audio/*
+tests/test_data/genuine/*
+tests/test_data/synthetic/*
+
+# ==============================
+# Logs
+# ==============================
+*.log
+logs/
+
+# ==============================
+# IDE
+# ==============================
+.vscode/
+.idea/
+
+# ==============================
+# OS
+# ==============================
+.DS_Store
+Thumbs.db
+
+# ==============================
+# Coverage
+# ==============================
+.coverage
+htmlcov/
+coverage.xml
