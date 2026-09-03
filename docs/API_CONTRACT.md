@@ -4,6 +4,8 @@
 
 This document defines the communication contract between the VoiceShield frontend, backend, and ML service.
 
+The backend is the central application layer.
+
 The database is accessed only by the backend.
 
 ```text
@@ -42,29 +44,60 @@ Therefore:
 http://localhost:8000/api
 ```
 
-Production URL will be configured later.
+The production URL will be configured through the deployment environment.
 
 ---
 
-# 3. Authentication
+# 3. Communication Methods
+
+VoiceShield uses two primary communication mechanisms.
+
+## REST API
+
+REST is used for normal application operations:
+
+* Authentication
+* Audio upload
+* Analysis creation
+* Analysis results
+* Analysis history
+* Speaker management
+* Profile-related operations
+* Health checks
+
+## WebSocket
+
+WebSocket is used for live analysis:
+
+```text
+/api/live-analysis
+```
+
+The live-analysis feature processes smaller audio chunks and returns partial predictions.
+
+---
+
+# 4. Authentication
 
 VoiceShield uses JWT-based authentication.
 
 After successful login, the backend returns an access token.
 
-The frontend sends the token with protected requests:
+Protected requests send the token using:
 
 ```http
 Authorization: Bearer <access_token>
 ```
 
-Protected endpoints must reject requests without valid authentication.
+All protected endpoints must reject requests without valid authentication.
+
+The backend must also check resource ownership before returning private user data.
 
 ---
 
-# 4. Standard Response Format
+# 5. Standard Response Format
 
-Successful responses should follow a consistent structure.
+Successful API responses should use JSON.
 
 ### Success
 
@@ -88,9 +121,15 @@ Successful responses should follow a consistent structure.
 }
 ```
 
+The exact error codes may be expanded during implementation but should remain documented.
+
+---
+
+# 6. HTTP Status Codes
+
 The backend should use appropriate HTTP status codes.
 
-Examples:
+Initial status codes:
 
 ```text
 200 OK
@@ -109,13 +148,15 @@ Examples:
 
 ---
 
-# 5. Authentication APIs
+# 7. Authentication APIs
 
-## 5.1 Register
+## 7.1 Register
 
 ```http
 POST /api/auth/register
 ```
+
+Creates a new user account.
 
 ### Request
 
@@ -143,13 +184,17 @@ POST /api/auth/register
 }
 ```
 
+Passwords must never be returned in API responses.
+
 ---
 
-# 6. Login
+# 8. Login
 
 ```http
 POST /api/auth/login
 ```
+
+Authenticates an existing user.
 
 ### Request
 
@@ -180,13 +225,15 @@ POST /api/auth/login
 
 ---
 
-# 7. Current User
+# 9. Current User
 
 ```http
 GET /api/auth/me
 ```
 
 Authentication required.
+
+Returns information about the currently authenticated user.
 
 ### Response
 
@@ -203,7 +250,7 @@ Authentication required.
 
 ---
 
-# 8. Audio Upload
+# 10. Audio Upload
 
 ```http
 POST /api/audio/upload
@@ -211,42 +258,20 @@ POST /api/audio/upload
 
 Authentication required.
 
-Content type:
+The endpoint accepts an audio file from the frontend.
 
-```text
-multipart/form-data
-```
+The backend is responsible for:
 
-### Form fields
+* Validating the uploaded file
+* Checking the file type
+* Applying file-size limits
+* Storing the audio
+* Creating the corresponding audio metadata
+* Returning an identifier for later analysis
 
-```text
-file
-```
+The exact multipart/form-data field name and complete upload behavior will be finalized during implementation.
 
-Optional:
-
-```text
-speaker_id
-```
-
-Supported formats should initially include:
-
-```text
-.wav
-.mp3
-.flac
-.m4a
-```
-
-The backend validates:
-
-* File extension
-* MIME type
-* File size
-* Audio readability
-* Duration limits
-
-### Response
+### Conceptual response
 
 ```json
 {
@@ -254,8 +279,6 @@ The backend validates:
   "data": {
     "audio_id": "uuid",
     "filename": "recording.wav",
-    "duration": 42.5,
-    "format": "wav",
     "status": "uploaded"
   },
   "message": "Audio uploaded successfully"
@@ -264,7 +287,7 @@ The backend validates:
 
 ---
 
-# 9. Create Analysis
+# 11. Create Analysis
 
 ```http
 POST /api/analysis
@@ -272,19 +295,18 @@ POST /api/analysis
 
 Authentication required.
 
-### Request
+Creates an analysis for an uploaded audio file.
+
+### Conceptual request
 
 ```json
 {
   "audio_id": "uuid",
-  "speaker_id": "uuid",
   "analysis_type": "full"
 }
 ```
 
-`speaker_id` is optional.
-
-Possible analysis types:
+Supported analysis types:
 
 ```text
 full
@@ -292,30 +314,72 @@ deepfake_only
 speaker_verification
 ```
 
-### Response
+For speaker verification, the request may additionally identify the speaker profile to use.
+
+The exact request structure will be finalized with the backend implementation and ML contract.
+
+### Conceptual response
 
 ```json
 {
   "success": true,
   "data": {
     "analysis_id": "uuid",
-    "status": "processing"
+    "status": "queued"
   },
-  "message": "Analysis started"
+  "message": "Analysis created successfully"
 }
 ```
 
 ---
 
-# 10. Analysis Status
+# 12. Get Analysis Result
 
 ```http
-GET /api/analysis/{analysis_id}
+GET /api/analysis/{id}
 ```
 
 Authentication required.
 
-Possible statuses:
+Returns the result of an analysis owned by the authenticated user.
+
+### Conceptual response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "status": "completed",
+    "analysis_type": "full",
+    "ai_probability": 0.91,
+    "authentic_probability": 0.09,
+    "speaker_similarity": 0.87,
+    "risk_score": 0.89,
+    "risk_level": "HIGH",
+    "confidence": 0.93,
+    "model_version": "v1.0",
+    "segments": [
+      {
+        "start": 8.0,
+        "end": 12.0,
+        "ai_probability": 0.94,
+        "risk_level": "HIGH"
+      }
+    ]
+  }
+}
+```
+
+The numerical values above are examples only.
+
+Actual values are produced by the ML system.
+
+---
+
+# 13. Analysis Status
+
+An analysis can have the following initial states:
 
 ```text
 queued
@@ -324,71 +388,27 @@ completed
 failed
 ```
 
-### Processing response
+Conceptual flow:
 
-```json
-{
-  "success": true,
-  "data": {
-    "analysis_id": "uuid",
-    "status": "processing"
-  }
-}
+```text
+queued
+  ↓
+processing
+  ↓
+completed
+```
+
+If processing fails:
+
+```text
+processing
+  ↓
+failed
 ```
 
 ---
 
-# 11. Completed Analysis Response
-
-When analysis is complete:
-
-```json
-{
-  "success": true,
-  "data": {
-    "analysis_id": "uuid",
-    "status": "completed",
-
-    "ai_probability": 0.91,
-    "authentic_probability": 0.09,
-
-    "speaker_similarity": 0.87,
-
-    "risk": {
-      "level": "HIGH",
-      "score": 0.89
-    },
-
-    "segments": [
-      {
-        "id": "segment-uuid",
-        "start": 8.0,
-        "end": 12.0,
-        "ai_probability": 0.94,
-        "risk_level": "HIGH"
-      }
-    ],
-
-    "explanation": {
-      "indicators": [
-        "Synthetic speech indicators detected",
-        "Multiple suspicious segments identified"
-      ]
-    },
-
-    "model": {
-      "name": "VoiceShield Detector",
-      "version": "1.0"
-    },
-
-    "created_at": "2026-09-02T10:00:00Z"
-  }
-}
-```
-
----
-
-# 12. Analysis History
+# 14. Analysis History
 
 ```http
 GET /api/history
@@ -396,64 +416,37 @@ GET /api/history
 
 Authentication required.
 
-Optional query parameters:
+Returns analyses belonging to the authenticated user.
 
-```text
-?page=1
-&limit=20
-&risk=HIGH
-&search=recording
-```
+The frontend may use the history endpoint for:
 
-### Response
+* Searching analyses
+* Filtering by risk
+* Sorting by date
+* Opening previous results
+* Deleting an analysis
 
-```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "analysis_id": "uuid",
-        "filename": "call.wav",
-        "ai_probability": 0.91,
-        "risk_level": "HIGH",
-        "created_at": "2026-09-02T10:00:00Z"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 127
-    }
-  }
-}
-```
+Pagination may be added as required during implementation.
 
 ---
 
-# 13. Delete Analysis
+# 15. Delete Analysis
 
 ```http
-DELETE /api/analysis/{analysis_id}
+DELETE /api/analysis/{id}
 ```
 
 Authentication required.
 
-### Response
+Deletes an analysis belonging to the authenticated user.
 
-```json
-{
-  "success": true,
-  "data": null,
-  "message": "Analysis deleted successfully"
-}
-```
+The backend must verify ownership before deletion.
 
-Users may only delete analyses belonging to their account.
+Related segments may also be deleted according to the database relationship.
 
 ---
 
-# 14. Speaker Profiles
+# 16. Speaker Management
 
 ## Create Speaker
 
@@ -463,7 +456,9 @@ POST /api/speakers
 
 Authentication required.
 
-### Request
+Creates a speaker profile.
+
+### Conceptual request
 
 ```json
 {
@@ -471,68 +466,40 @@ Authentication required.
 }
 ```
 
-### Response
+### Conceptual response
 
 ```json
 {
   "success": true,
   "data": {
-    "speaker_id": "uuid",
+    "id": "uuid",
     "name": "John",
-    "status": "created"
-  }
-}
-```
-
----
-
-# 15. Add Speaker Reference Audio
-
-```http
-POST /api/speakers/{speaker_id}/audio
-```
-
-Authentication required.
-
-Content type:
-
-```text
-multipart/form-data
-```
-
-### Response
-
-```json
-{
-  "success": true,
-  "data": {
-    "speaker_id": "uuid",
-    "reference_audio_id": "uuid",
     "status": "processing"
   }
 }
 ```
 
-The ML service will eventually generate the speaker representation/embedding.
-
 ---
 
-# 16. List Speakers
+# 17. Get Speakers
 
 ```http
 GET /api/speakers
 ```
 
-### Response
+Authentication required.
+
+Returns speaker profiles belonging to the authenticated user.
+
+Example:
 
 ```json
 {
   "success": true,
   "data": [
     {
-      "speaker_id": "uuid",
+      "id": "uuid",
       "name": "John",
-      "reference_count": 3,
       "status": "ready"
     }
   ]
@@ -541,306 +508,137 @@ GET /api/speakers
 
 ---
 
-# 17. Speaker Verification
+# 18. Speaker Verification
 
 ```http
-POST /api/speakers/{speaker_id}/verify
+POST /api/speakers/{id}/verify
 ```
 
 Authentication required.
 
-### Request
+Uses the selected speaker profile as a reference for speaker verification.
 
-```json
-{
-  "audio_id": "uuid"
-}
-```
-
-### Response
-
-```json
-{
-  "success": true,
-  "data": {
-    "speaker_id": "uuid",
-    "similarity": 0.87,
-    "confidence": 0.91,
-    "result": "MATCH"
-  }
-}
-```
-
-Possible results:
+The verification process is:
 
 ```text
-MATCH
-NO_MATCH
-INCONCLUSIVE
+Audio
+   ↓
+Speaker Reference
+   ↓
+ML Speaker Verification
+   ↓
+Similarity Score
+   ↓
+Backend
+   ↓
+Frontend
+```
+
+A speaker should only be used when its status is:
+
+```text
+ready
 ```
 
 ---
 
-# 18. Live Analysis WebSocket
-
-Endpoint:
+# 19. Live Analysis
 
 ```text
 WS /api/live-analysis
 ```
 
-Authentication must be established before the live-analysis session.
+Authentication is required according to the final WebSocket implementation.
 
-Conceptual flow:
-
-```text
-Frontend
-   │
-   │ WebSocket connection
-   ▼
-Backend
-   │
-   │ audio chunks
-   ▼
-ML Service
-   │
-   │ partial prediction
-   ▼
-Backend
-   │
-   │ WebSocket message
-   ▼
-Frontend
-```
-
----
-
-# 19. Live Session Start
-
-Frontend sends:
-
-```json
-{
-  "type": "start",
-  "session_id": "uuid",
-  "speaker_id": "uuid"
-}
-```
-
-`speaker_id` is optional.
-
-Backend responds:
-
-```json
-{
-  "type": "session_started",
-  "session_id": "uuid"
-}
-```
-
----
-
-# 20. Live Audio Chunk
-
-Frontend sends audio chunks.
-
-Conceptually:
+The intended flow is:
 
 ```text
-Binary WebSocket message
+Microphone / Authorized Audio Stream
+                  ↓
+               Browser
+                  ↓
+              WebSocket
+                  ↓
+               Backend
+                  ↓
+             Audio Chunks
+                  ↓
+              ML Service
+                  ↓
+          Partial Prediction
+                  ↓
+               Backend
+                  ↓
+              WebSocket
+                  ↓
+               Browser
 ```
 
-or a defined encoded format.
+The system should process smaller chunks instead of waiting for the entire recording.
 
-The exact browser audio format will be finalized during implementation.
-
----
-
-# 21. Live Analysis Result
-
-Backend sends partial results:
-
-```json
-{
-  "type": "analysis_update",
-  "session_id": "uuid",
-  "timestamp": 15.5,
-
-  "ai_probability": 0.78,
-  "authentic_probability": 0.22,
-
-  "speaker_similarity": 0.84,
-
-  "risk": {
-    "level": "MEDIUM",
-    "score": 0.71
-  }
-}
-```
-
----
-
-# 22. Live Suspicious Segment
-
-If suspicious activity is detected:
-
-```json
-{
-  "type": "suspicious_segment",
-  "session_id": "uuid",
-
-  "segment": {
-    "start": 15.0,
-    "end": 20.0,
-    "ai_probability": 0.93,
-    "risk_level": "HIGH"
-  }
-}
-```
-
----
-
-# 23. Live Session End
-
-Frontend:
-
-```json
-{
-  "type": "stop",
-  "session_id": "uuid"
-}
-```
-
-Backend:
-
-```json
-{
-  "type": "session_completed",
-  "session_id": "uuid",
-  "message": "Live analysis completed"
-}
-```
-
----
-
-# 24. ML Service Contract
-
-The backend communicates with the ML service.
-
-The ML service should remain independent from the frontend.
-
-Conceptual endpoint:
-
-```http
-POST /predict
-```
-
-The backend sends:
+Example timeline:
 
 ```text
-Audio
-+
-Analysis configuration
-+
-Optional speaker reference
+00:00 → LOW
+00:05 → LOW
+00:10 → MEDIUM
+00:15 → HIGH
+00:20 → HIGH
 ```
 
-The ML service returns standardized JSON.
+The exact WebSocket message structure and audio format will be finalized before implementation.
 
 ---
 
-# 25. ML Request
+# 20. ML Service Contract
 
-Conceptual structure:
+The backend communicates with the ML system through a defined service interface.
 
-```json
-{
-  "analysis_id": "uuid",
-  "audio_path": "/path/to/audio.wav",
-  "analysis_type": "full",
-  "speaker_reference": null
-}
-```
+The ML service should return a stable structure.
 
-The exact transport mechanism may be changed later if the ML service uses a shared volume or object storage.
-
-The logical contract remains the same.
-
----
-
-# 26. ML Response
+Conceptual result:
 
 ```json
 {
-  "analysis_id": "uuid",
-
   "ai_probability": 0.91,
   "authentic_probability": 0.09,
-
   "speaker_similarity": 0.87,
-
   "segments": [
     {
       "start": 8.0,
       "end": 12.0,
       "ai_probability": 0.94
-    },
-    {
-      "start": 27.0,
-      "end": 31.0,
-      "ai_probability": 0.91
     }
   ],
-
   "confidence": 0.93,
-
-  "explanation": {
-    "indicators": [
-      "Synthetic speech characteristics detected"
-    ]
-  },
-
-  "model": {
-    "name": "VoiceShield Detector",
-    "version": "1.0"
-  }
+  "model_version": "v1.0"
 }
 ```
 
----
+These numbers are examples only.
 
-# 27. Important ML Contract Rule
+The actual model determines the final values.
 
-The ML team is free to change:
+The backend must not depend on the internal implementation of the ML model.
 
-* Model architecture
-* Feature extraction
-* Preprocessing
-* Training procedure
-* Dataset
-* Internal algorithms
-
-as long as the **external ML output contract remains compatible**.
-
-For example, the ML team may replace:
-
-```text
-Model A
-```
-
-with:
-
-```text
-Model B
-```
-
-without requiring the frontend to change.
+The ML member must maintain compatibility with this external result contract.
 
 ---
 
-# 28. Risk Levels
+# 21. Risk Result
 
-The application recognizes:
+The backend can combine ML information into an application-level risk result.
+
+Possible inputs include:
+
+```text
+AI probability
+Speaker similarity
+Suspicious segments
+Model confidence
+```
+
+Initial risk levels:
 
 ```text
 LOW
@@ -849,65 +647,49 @@ HIGH
 CRITICAL
 ```
 
-The backend's risk engine is responsible for converting ML signals into the final application risk.
+Exact risk-scoring thresholds should be finalized after ML evaluation.
 
-The ML model must not directly control UI wording.
-
-For example:
-
-```text
-ML:
-ai_probability = 0.91
-
-Backend:
-risk_level = HIGH
-
-Frontend:
-Display HIGH
-```
+They should not be invented before model testing.
 
 ---
 
-# 29. Error Codes
+# 22. Error Codes
 
-Standard application error codes:
+The API should use consistent error codes.
+
+Initial codes include:
 
 ```text
-AUTH_REQUIRED
-INVALID_CREDENTIALS
-USER_EXISTS
-USER_NOT_FOUND
-
+INVALID_REQUEST
 INVALID_AUDIO
-UNSUPPORTED_AUDIO_FORMAT
-AUDIO_TOO_LARGE
-AUDIO_CORRUPTED
-AUDIO_PROCESSING_FAILED
-
+FILE_TOO_LARGE
+UNAUTHORIZED
+FORBIDDEN
+NOT_FOUND
 ANALYSIS_NOT_FOUND
 ANALYSIS_FAILED
-ANALYSIS_IN_PROGRESS
-
 SPEAKER_NOT_FOUND
 SPEAKER_NOT_READY
 SPEAKER_VERIFICATION_FAILED
-
 ML_SERVICE_UNAVAILABLE
 ML_ANALYSIS_FAILED
-
 RATE_LIMITED
 INTERNAL_ERROR
 ```
 
+Additional error codes may be added when required.
+
 ---
 
-# 30. Health Check
+# 23. Health Check
 
 ```http
 GET /api/health
 ```
 
-Response:
+This endpoint checks the basic health of the application and its dependencies.
+
+### Response
 
 ```json
 {
@@ -921,15 +703,38 @@ Response:
 }
 ```
 
-If a dependency is unavailable, the backend should report degraded status appropriately.
+If a dependency is unavailable, the backend should report an appropriate degraded status.
 
 ---
 
-# 31. API Ownership
+# 24. Ownership and Authorization
 
-## Frontend Member
+All protected resources must belong to the authenticated user unless an explicitly authorized system-level operation requires otherwise.
 
-Consumes:
+The backend must verify ownership for:
+
+```text
+Audio
+Analyses
+Speaker profiles
+Speaker reference data
+```
+
+Example:
+
+```text
+User A
+  ↓
+Only User A's private resources
+```
+
+A user must not be able to access another user's analysis simply by changing an ID in the URL.
+
+---
+
+# 25. Frontend API Usage
+
+The frontend consumes:
 
 ```text
 /api/auth/*
@@ -938,62 +743,63 @@ Consumes:
 /api/history
 /api/speakers/*
 /api/live-analysis
+/api/health
 ```
 
-The frontend does not modify backend API definitions independently.
+The frontend must not:
+
+```text
+Directly access PostgreSQL
+Directly access the ML service
+Expose server-side credentials
+```
 
 ---
 
-## Backend Member
+# 26. Backend API Ownership
 
-Owns:
+The backend member owns:
 
 ```text
 /api/*
 ```
 
-Responsible for:
+The backend is responsible for:
 
 * Request validation
 * Authentication
 * Authorization
 * Business logic
-* ML communication
 * Database communication
+* Supabase Storage communication
+* ML communication
 * Response formatting
+* Error handling
 
 ---
 
-## Database Member
+# 27. Database API Boundary
 
-Does not create public APIs.
+The database member does not create public frontend APIs.
 
-Instead, the database member provides:
+The database member provides:
 
-
+```text
 Database schema
 Relationships
+Constraints
 Indexes
 Migrations
+Seed data
 ```
 
-The backend consumes the database through SQLAlchemy.
+The backend consumes the database through the established SQLAlchemy/database layer.
+
+The frontend does not communicate with PostgreSQL directly.
 
 ---
 
-## ML Member
-
-Owns:
-
-
-ML Service Contract
-
-
-The ML member guarantees that the agreed request/response structure remains compatible.
-
----
-
-# 32. API Versioning
+# 28. API Versioning
 
 The initial API uses:
 
@@ -1001,17 +807,17 @@ The initial API uses:
 /api
 ```
 
-If a breaking change becomes necessary, introduce:
+If a breaking change becomes necessary, a new API version can be introduced:
 
 ```text
 /api/v2
 ```
 
-Do not silently change an existing endpoint's response structure.
+An existing endpoint's response structure should not be silently changed in a breaking way.
 
 ---
 
-# 33. API Contract Rules
+# 29. API Contract Rules
 
 ### Rule 1
 
@@ -1023,11 +829,11 @@ Do not change data types without team agreement.
 
 ### Rule 3
 
-Do not remove fields without checking frontend/backend dependencies.
+Do not remove fields without checking frontend, backend, and ML dependencies.
 
 ### Rule 4
 
-New optional fields are preferred over breaking existing fields.
+Prefer new optional fields over breaking existing fields.
 
 ### Rule 5
 
@@ -1039,7 +845,7 @@ All protected endpoints require authentication.
 
 ### Rule 7
 
-Users can access only their own analyses and speaker profiles.
+Users can access only their own private analyses and speaker profiles.
 
 ### Rule 8
 
@@ -1053,16 +859,21 @@ Frontend never accesses ML directly.
 
 ML implementation can change internally without breaking the external ML contract.
 
+### Rule 11
+
+Changes affecting another component must be communicated to the affected team member.
+
 ---
 
-# 34. End-to-End Contract
+# 30. End-to-End Contract
 
 The complete system should follow:
 
-
+```text
                     FRONTEND
                         │
-                        │ REST
+                 REST / WebSocket
+                        │
                         ▼
                     BACKEND
                         │
@@ -1081,7 +892,7 @@ The complete system should follow:
                     FRONTEND
 ```
 
-The critical data flow is:
+The main audio analysis flow is:
 
 ```text
 Audio
@@ -1101,19 +912,83 @@ Frontend Result
 
 ---
 
-# 35. Contract Status
+# 31. API Security Requirements
+
+The API must support:
+
+* Authentication
+* Authorization
+* Input validation
+* Audio file validation
+* File-size limits
+* Secure password storage
+* Rate limiting
+* Environment-based secrets
+* Ownership checks
+* Appropriate error handling
+
+Secrets must never be committed to Git.
+
+---
+
+# 32. Privacy Requirements
+
+VoiceShield may process sensitive voice recordings.
+
+The application should clearly communicate what happens to uploaded audio.
+
+The processing flow may be:
+
+```text
+Upload
+   ↓
+Temporary Processing
+   ↓
+Analysis
+   ↓
+Result
+   ↓
+Temporary Audio Cleanup
+```
+
+If audio is intentionally retained for analysis history or speaker profiles, the retention policy should be explicit.
+
+---
+
+# 33. Contract Status
 
 This document represents the **initial VoiceShield API contract**.
 
-Before production deployment, the team must additionally finalize:
+The following details must be finalized during implementation before production deployment:
 
 * Exact authentication implementation
 * Exact multipart upload behavior
 * Exact WebSocket audio format
+* Exact WebSocket message structure
 * ML transport mechanism
 * Pagination implementation
 * Rate-limit configuration
 * Production error handling
-* API documentation/OpenAPI definitions
+* OpenAPI documentation
+* Final request/response schemas
 
-Any changes must be coordinated between affected team members.
+Until those details are finalized, implementation should follow the documented conceptual contract and must not introduce incompatible interfaces.
+
+Any change affecting another component must be coordinated with the relevant team member.
+
+---
+
+# 34. Related Documents
+
+This API contract should be used together with:
+
+```text
+docs/ARCHITECTURE.md
+docs/DATABASE_SCHEMA.md
+docs/ML_SPECIFICATION.md
+docs/TECH_STACK.md
+docs/SECURITY.md
+docs/PRIVACY.md
+```
+
+These documents describe different parts of the same VoiceShield system and should remain consistent.

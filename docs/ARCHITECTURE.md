@@ -2,42 +2,91 @@
 
 ## 1. Overview
 
-VoiceShield is an AI-based voice security system that analyzes audio to detect whether it is genuine or AI-generated/voice-cloned.
+VoiceShield is an AI-based voice security system that analyzes audio to detect AI-generated or voice-cloned speech.
 
-The system also supports speaker verification, which allows us to check whether the analyzed voice matches a registered/reference speaker.
+The system can analyze uploaded or recorded audio and, where supported, real-time audio. It can provide AI-generated probability, risk information, suspicious segments, speaker verification results, and explanation information.
 
 The project is divided into four main parts:
 
 * **Frontend** — User interface and audio interaction
 * **Backend** — API, authentication and application logic
-* **ML** — Voice deepfake detection and speaker verification
-* **Database** — Users, analyses, speakers and other application data
+* **ML** — Voice deepfake detection, speaker verification and analysis
+* **Supabase** — PostgreSQL database and audio storage
 
 The basic flow is:
 
 ```text
 User
- ↓
+  ↓
 Frontend
- ↓
-Backend
- ├── Database
- └── ML Service
-       ↓
-    Prediction
-       ↓
-Backend
- ↓
-Frontend
- ↓
-Result
+  ↓
+FastAPI Backend
+  ├── Supabase PostgreSQL
+  ├── Supabase Storage
+  └── ML System
+          ↓
+       Prediction
+          ↓
+     FastAPI Backend
+          ↓
+       Frontend
+          ↓
+        Result
 ```
 
 ---
 
-## 2. Main Components
+## 2. High-Level Architecture
 
-### Frontend
+```text
+                         ┌─────────────────────┐
+                         │        USER         │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │      FRONTEND       │
+                         │    HTML/CSS/JS      │
+                         │      Bootstrap      │
+                         └──────────┬──────────┘
+                                    │
+                             REST / WebSocket
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │       FASTAPI       │
+                         │       BACKEND       │
+                         └─────────┬───────────┘
+                                   │
+                    ┌──────────────┼──────────────┐
+                    │              │              │
+                    ▼              ▼              ▼
+             ┌────────────┐ ┌────────────┐ ┌────────────┐
+             │  Supabase  │ │  Supabase  │ │     ML     │
+             │ PostgreSQL │ │  Storage   │ │   System   │
+             └────────────┘ └────────────┘ └────────────┘
+                    │              │              │
+                    │              │              ▼
+                    │              │       ┌──────────────┐
+                    │              │       │ Preprocessing│
+                    │              │       │ Detection    │
+                    │              │       │ Verification │
+                    │              │       │ Explainability│
+                    │              │       └──────────────┘
+                    │              │
+                    └──────────────┴──────────────┐
+                                                  ▼
+                                           Analysis Result
+                                                  │
+                                                  ▼
+                                              Frontend
+```
+
+This architecture is the baseline for implementation.
+
+---
+
+## 3. Frontend
 
 The frontend is built using:
 
@@ -46,582 +95,662 @@ The frontend is built using:
 * JavaScript
 * Bootstrap
 
-It provides the interface through which users can:
+The frontend provides the user interface for:
 
-* Register and log in
-* Upload audio
-* Record audio
-* Start an analysis
-* View detection results
-* View suspicious segments
-* Check analysis history
-* Manage speaker profiles
-* Use live analysis
+* Registration
+* Login
+* Dashboard
+* Audio upload
+* Audio recording
+* Audio analysis
+* Result viewing
+* Analysis history
+* Speaker profiles
+* Speaker verification
+* Live analysis
 
-The frontend does not directly connect to the database or ML service. All requests go through the backend.
+The frontend communicates with the backend using REST APIs and WebSockets.
+
+The frontend does **not** directly access:
+
+* Supabase PostgreSQL
+* Supabase service-role credentials
+* ML internals
+
+All application requests pass through FastAPI.
 
 ---
 
-### Backend
+## 4. Backend
 
 The backend is built using **Python and FastAPI**.
 
-It acts as the main controller of the application.
+FastAPI is the central application backend and connects the frontend with the database, storage and ML system.
 
-Its main responsibilities are:
+The backend is responsible for:
 
-* User authentication
+* Authentication
 * JWT handling
-* Audio upload and validation
-* Creating analysis requests
-* Communicating with the ML service
-* Storing analysis results
-* Speaker management
-* Risk calculation
-* WebSocket communication for live analysis
+* User management
+* Request validation
+* Audio upload handling
+* Audio storage coordination
+* Analysis creation
+* ML communication
+* Analysis result storage
+* Speaker profile operations
+* Analysis history
+* WebSocket communication
+* Access control
+* Error handling
 
-The backend basically connects everything together:
+The backend should remain independent from the internal implementation of the ML models.
+
+---
+
+## 5. Supabase
+
+Supabase is used as the project's managed PostgreSQL and storage infrastructure.
+
+### Supabase PostgreSQL
+
+PostgreSQL stores the application's structured data.
+
+The current database design contains these seven main tables:
+
+```text
+users
+audio_files
+speakers
+speaker_reference_audio
+analyses
+segments
+model_versions
+```
+
+The backend communicates with PostgreSQL through the established backend/database layer.
+
+The frontend does not directly modify database records.
+
+### Supabase Storage
+
+Supabase Storage is used for persistent audio files.
+
+The database stores the metadata and storage reference for an audio file rather than storing the complete audio binary inside the database.
+
+Example:
+
+```text
+Supabase Storage
+└── audio/
+    └── user-id/
+        └── audio-file.wav
+```
+
+The corresponding database record can contain:
+
+```text
+storage_path = audio/user-id/audio-file.wav
+```
+
+Storage paths should not expose unnecessary user information.
+
+---
+
+## 6. ML System
+
+The ML component is responsible for audio intelligence.
+
+Its responsibilities include:
+
+* Audio preprocessing
+* Feature extraction
+* AI-generated/deepfake detection
+* Voice-clone detection
+* Speaker embeddings
+* Speaker verification
+* Suspicious segment analysis
+* Explainability
+* Model evaluation
+
+The ML system is kept separate from the FastAPI application.
+
+Its internal implementation can change without requiring the frontend to change, as long as the agreed ML interface remains compatible.
+
+The ML component is organized approximately as:
+
+```text
+ml/
+├── preprocessing/
+├── features/
+├── detection/
+├── speaker_verification/
+├── pipeline/
+├── evaluation/
+├── explainability/
+├── training/
+└── tests/
+```
+
+The backend should communicate with ML through a stable interface rather than depending on a particular model implementation.
+
+---
+
+## 7. Audio Upload Flow
+
+For uploaded audio, the flow is:
+
+```text
+User
+  ↓
+Frontend
+  ↓
+FastAPI
+  ↓
+Validate Audio
+  ↓
+Supabase Storage
+  ↓
+audio_files metadata
+  ↓
+ML Analysis
+  ↓
+Analysis Result
+  ↓
+Supabase PostgreSQL
+  ↓
+Frontend
+```
+
+The `audio_files` record keeps information about the stored audio and its storage location.
+
+The ML system processes the audio and returns the analysis information to the backend.
+
+---
+
+## 8. Analysis Flow
+
+The normal analysis flow is:
 
 ```text
 Frontend
    ↓
-Backend
-   ├── PostgreSQL
-   └── ML
+FastAPI
+   ↓
+Retrieve Audio
+   ↓
+ML
+   ↓
+Detection / Verification
+   ↓
+Analysis Result
+   ↓
+FastAPI
+   ↓
+PostgreSQL
+   ↓
+Frontend
 ```
+
+An analysis can contain information such as:
+
+* AI-generated probability
+* Authentic probability
+* Speaker similarity where applicable
+* Risk level
+* Suspicious segments
+* Explanation information
+* Model/version information
+
+The exact API fields are defined separately in `API_CONTRACT.md`.
 
 ---
 
-### ML Service
+## 9. Suspicious Segment Flow
 
-The ML component is responsible for analyzing the actual voice/audio.
-
-The planned pipeline is:
+Suspicious sections of an audio file are identified by the ML system.
 
 ```text
 Audio
- ↓
-Preprocessing
- ↓
-Feature / Representation Extraction
- ↓
-Deepfake Detection
- ↓
+  ↓
+ML
+  ↓
 Segment Analysis
- ↓
-Speaker Verification (if reference voice exists)
- ↓
-ML Result
-```
-
-The ML system may use different models during development. The rest of the application should not depend on the internal model architecture.
-
-For example, we may replace one detection model with another later without changing the frontend.
-
----
-
-### Database
-
-We use **PostgreSQL** for application data.
-
-The database mainly stores:
-
-* User accounts
-* Analysis records
-* Analysis segments
-* Speaker profiles
-* Model versions
-* Relevant metadata
-
-Large audio files and ML datasets are not intended to be stored directly inside PostgreSQL.
-
----
-
-# 3. Communication Between Components
-
-The components communicate in the following way:
-
-```text
+  ↓
+Segment Probabilities
+  ↓
+FastAPI
+  ↓
+segments table
+  ↓
 Frontend
-   │
-   │ REST API / WebSocket
-   ▼
-Backend
-   │
-   ├── SQLAlchemy
-   │       ↓
-   │   PostgreSQL
-   │
-   └── HTTP
-         ↓
-       ML Service
+  ↓
+Timeline / Suspicious Sections
 ```
 
-### Frontend → Backend
-
-REST APIs are used for normal operations such as:
-
-```text
-Login
-Register
-Upload audio
-Create analysis
-Get result
-Get history
-Manage speakers
-```
-
-WebSockets are used for live analysis.
-
-### Backend → Database
-
-The backend uses SQLAlchemy to communicate with PostgreSQL.
-
-The frontend never connects directly to PostgreSQL.
-
-### Backend → ML
-
-The backend sends the audio/analysis request to the ML service and receives a structured prediction.
-
-This keeps the ML implementation separate from the application logic.
+The `segments` table stores the segment information associated with an analysis.
 
 ---
 
-# 4. Audio Analysis Flow
+## 10. Speaker Verification Flow
 
-For a normal uploaded audio file, the process is:
+Speaker verification uses a registered speaker profile and reference audio.
 
 ```text
-1. User selects/records audio
-             ↓
-2. Frontend uploads audio
-             ↓
-3. Backend validates the file
-             ↓
-4. Backend creates an analysis
-             ↓
-5. Audio is passed to ML
-             ↓
-6. ML preprocesses the audio
-             ↓
-7. Detection model analyzes the voice
-             ↓
-8. Suspicious segments are identified
-             ↓
-9. Speaker verification is performed if requested
-             ↓
-10. ML returns the prediction
-             ↓
-11. Backend calculates application risk
-             ↓
-12. Result is saved in PostgreSQL
-             ↓
-13. Frontend displays the result
+Reference Audio
+       ↓
+Speaker Profile
+       ↓
+Supabase Storage
+       ↓
+PostgreSQL Metadata
+       ↓
+New Audio
+       ↓
+ML Speaker Verification
+       ↓
+Similarity Result
+       ↓
+FastAPI
+       ↓
+Frontend
 ```
+
+A speaker can have multiple reference recordings.
+
+Speaker verification is only performed when the required speaker/reference information is available.
 
 ---
 
-# 5. ML Result
+## 11. Live Analysis
 
-The ML service should return a common format so that the backend does not need to know how the model works internally.
-
-Example:
-
-```json
-{
-  "ai_probability": 0.91,
-  "authentic_probability": 0.09,
-  "speaker_similarity": 0.87,
-  "segments": [
-    {
-      "start": 8.0,
-      "end": 12.0,
-      "ai_probability": 0.94
-    }
-  ],
-  "confidence": 0.93,
-  "model_version": "v1.0"
-}
-```
-
-These values are examples. The actual model will determine the prediction.
-
----
-
-# 6. Deepfake Detection and Speaker Verification
-
-These are treated as two different ML tasks.
-
-### Deepfake Detection
-
-The question is:
-
-> Does this audio contain signs of synthetic or manipulated speech?
-
-Example output:
-
-```text
-AI probability: 91%
-Authentic probability: 9%
-```
-
-### Speaker Verification
-
-The question is:
-
-> Does this voice match the registered/reference speaker?
-
-Example:
-
-```text
-Speaker similarity: 87%
-Result: MATCH
-```
-
-Keeping these two tasks separate is important because a real recording of the wrong person is not necessarily a deepfake, and an AI-generated voice may be designed to imitate a specific person.
-
----
-
-# 7. Risk Calculation
-
-The ML model provides the main prediction, but the final application risk is handled by the backend.
-
-The backend can consider:
-
-```text
-AI probability
-+
-Speaker similarity
-+
-Suspicious segments
-+
-Model confidence
-        ↓
-Risk Engine
-        ↓
-Overall Risk
-```
-
-The initial risk levels are:
-
-```text
-LOW
-MEDIUM
-HIGH
-CRITICAL
-```
-
-The exact scoring rules will be finalized during implementation and testing.
-
----
-
-# 8. Live Analysis
-
-VoiceShield is also designed to support real-time analysis.
+VoiceShield can support live analysis through WebSockets.
 
 The basic flow is:
 
 ```text
-Microphone / Authorized Audio Stream
-              ↓
-           Browser
-              ↓
-          WebSocket
-              ↓
-           Backend
-              ↓
-         Audio Chunks
-              ↓
-          ML Service
-              ↓
-       Partial Prediction
-              ↓
-           Backend
-              ↓
-          WebSocket
-              ↓
-          Frontend
-```
-
-Instead of waiting for the complete recording, the system can analyze smaller audio chunks and update the risk information while the session is running.
-
-For the SIH prototype, live analysis is intended for microphone input or another audio stream that the application is authorized to process.
-
----
-
-# 9. Authentication
-
-Authentication is handled by the backend.
-
-Basic flow:
-
-```text
-Register
-   ↓
-Backend
-   ↓
-Password Hash
-   ↓
-PostgreSQL
-```
-
-For login:
-
-```text
-Login
- ↓
-Backend
- ↓
-Verify Credentials
- ↓
-JWT Token
- ↓
+Microphone
+    ↓
+Browser
+    ↓
+WebSocket
+    ↓
+FastAPI
+    ↓
+ML
+    ↓
+Partial Results
+    ↓
+FastAPI
+    ↓
+WebSocket
+    ↓
 Frontend
 ```
 
-The frontend sends the JWT token with protected API requests.
+Live analysis is intended for microphone input or another audio stream that the application is authorized to process.
 
-Passwords are never stored as plain text.
-
----
-
-# 10. Security and Privacy
-
-Since voice recordings can contain sensitive information, the application should follow basic security and privacy practices.
-
-Some of the planned measures are:
-
-* Password hashing
-* JWT authentication
-* Authorization checks
-* File type validation
-* File size limits
-* Rate limiting
-* Secure environment variables
-* Temporary audio cleanup
-* Access control for analysis history
-* No API keys or passwords committed to Git
-
-Development secrets should be stored in `.env` files and excluded using `.gitignore`.
+The exact WebSocket message format is defined in the API/ML contracts.
 
 ---
 
-# 11. Project Structure
+## 12. Analysis History
 
-The main project structure is:
+Analysis history is retrieved through the backend.
+
+```text
+Frontend
+   ↓
+FastAPI
+   ↓
+Supabase PostgreSQL
+   ↓
+analyses
+   ↓
+Frontend
+```
+
+Users should only be able to access their own analysis history.
+
+---
+
+## 13. Authentication
+
+Authentication is handled through the backend.
+
+### Registration
+
+```text
+User
+  ↓
+Frontend
+  ↓
+FastAPI
+  ↓
+Password Hashing
+  ↓
+Supabase PostgreSQL
+```
+
+### Login
+
+```text
+User
+  ↓
+Frontend
+  ↓
+FastAPI
+  ↓
+Credential Verification
+  ↓
+JWT Token
+  ↓
+Frontend
+```
+
+Protected requests include the JWT token.
+
+The backend checks authentication and ownership before returning private user data.
+
+---
+
+## 14. Security Boundary
+
+FastAPI is the main application security boundary.
+
+```text
+Frontend
+    ↓
+FastAPI
+    ↓
+┌───────────────┐
+│   Supabase    │
+│ PostgreSQL    │
+│ Storage       │
+└───────────────┘
+       +
+      ML
+```
+
+The following must remain server-side:
+
+* Supabase service-role key
+* Database credentials
+* JWT secret
+* Other private API credentials
+
+Secrets must be stored using environment variables.
+
+The `.env` file must not be committed to Git.
+
+An `.env.example` file may be provided with placeholder values.
+
+---
+
+## 15. Data Ownership
+
+User ownership must be checked before accessing private resources.
+
+This includes:
+
+* Audio files
+* Speaker profiles
+* Reference recordings
+* Analyses
+* Analysis history
+
+A user should not be able to access another user's private data simply by changing an ID in a request.
+
+Supabase Row Level Security should be configured where appropriate.
+
+---
+
+## 16. Separation of Responsibilities
+
+The system follows these boundaries:
+
+```text
+Frontend
+→ Presentation and user interaction
+
+FastAPI Backend
+→ Application logic, authentication and orchestration
+
+Supabase PostgreSQL
+→ Structured persistent data
+
+Supabase Storage
+→ Persistent audio files
+
+ML
+→ Audio intelligence and prediction
+```
+
+The intended communication pattern is:
+
+```text
+Frontend
+     ↕
+  FastAPI
+   ↙   ↘
+Supabase  ML
+```
+
+The following direct connections are **not part of the intended architecture**:
+
+```text
+Frontend ↔ PostgreSQL
+Frontend ↔ ML
+ML ↔ PostgreSQL
+```
+
+This keeps the application boundaries clear.
+
+---
+
+## 17. Repository Structure
+
+The project uses a monorepo structure.
 
 ```text
 VoiceShield/
 │
 ├── frontend/
-│   ├── HTML files
-│   ├── css/
-│   ├── js/
-│   └── assets/
 │
 ├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── core/
-│   │   ├── db/
-│   │   ├── ml/
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   ├── services/
-│   │   └── websocket/
-│   └── tests/
 │
 ├── ml/
-│   ├── preprocessing/
-│   ├── features/
-│   ├── detection/
-│   ├── speaker_verification/
-│   ├── training/
-│   ├── evaluation/
-│   └── tests/
 │
 ├── database/
-│   ├── schema/
-│   ├── migrations/
-│   └── seeds/
+│
+├── deployment/
 │
 ├── docs/
-├── deployment/
-├── storage/
-└── tests/
+│   ├── ARCHITECTURE.md
+│   ├── API_CONTRACT.md
+│   ├── DATABASE_SCHEMA.md
+│   ├── DEMO_GUIDE.md
+│   ├── FEATURES.md
+│   ├── FRONTEND_SPECIFICATION.md
+│   ├── ML_SPECIFICATION.md
+│   ├── PRIVACY.md
+│   ├── PROJECT_SPECIFICATION.md
+│   ├── SECURITY.md
+│   ├── TECHNICAL_DECISIONS.md
+│   ├── TECH_STACK.md
+│   ├── TESTING.md
+│   └── USER_FLOWS.md
+│
+├── tests/
+│
+├── docker-compose.yml
+│
+└── README.md
 ```
 
-Each team member mainly works inside their assigned area.
+The `docs/` directory contains the shared project contracts and documentation.
 
 ---
 
-# 12. Team Responsibilities
+## 18. Deployment
 
-### Frontend Member
+Docker is used to keep the application environment consistent.
 
-Works mainly on:
-
-```text
-frontend/
-```
-
-Focus:
-
-* Pages
-* UI
-* Audio recording
-* Upload
-* Results
-* Dashboard
-* Charts
-* WebSocket client
-
-### Backend Member
-
-Works mainly on:
+The project includes deployment configuration for:
 
 ```text
-backend/
+Backend
+Frontend
+ML
+Nginx
+Docker Compose
 ```
 
-Focus:
+Supabase remains an external managed service.
 
-* FastAPI
-* Authentication
-* APIs
-* Audio handling
-* ML integration
-* WebSockets
-* Risk engine
+The local Docker environment does not need a local PostgreSQL server when using the hosted Supabase database.
 
-### Database Member
-
-Works mainly on:
+The deployment structure is approximately:
 
 ```text
-database/
+                    Internet
+                       │
+                       ▼
+                    Nginx
+                       │
+              ┌────────┴────────┐
+              ▼                 ▼
+          Frontend           FastAPI
+                                │
+                       ┌────────┴────────┐
+                       ▼                 ▼
+                   Supabase             ML
+                PostgreSQL +          Service
+                   Storage
 ```
-
-Focus:
-
-* PostgreSQL
-* Tables
-* Relationships
-* Constraints
-* Indexes
-* Migrations
-* Seed data
-
-### ML Member
-
-Works mainly on:
-
-```text
-ml/
-```
-
-Focus:
-
-* Dataset
-* Preprocessing
-* Feature extraction
-* Deepfake detection
-* Speaker verification
-* Model evaluation
-* Inference
 
 ---
 
-# 13. Shared Development Rules
+## 19. Scalability
 
-All team members can read the documentation, but changes to shared contracts should be coordinated.
+The architecture allows individual components to be improved independently.
 
-The important shared files are:
-
-```text
-docs/
-├── ARCHITECTURE.md
-├── API_CONTRACT.md
-├── DATABASE_SCHEMA.md
-└── ML_SPECIFICATION.md
-```
-
-The main rule is:
-
-> A change in one component should not silently break another component.
-
-For example, if the ML service changes:
-
-```json
-{
-  "ai_probability": 0.91
-}
-```
-
-to:
-
-```json
-{
-  "fake_score": 91
-}
-```
-
-the backend and API documentation also need to be updated.
-
----
-
-# 14. Development Environment
-
-The project is designed to run locally during development.
-
-The main services are:
+A possible future scaling approach is:
 
 ```text
 Frontend
-Backend
-ML Service
-PostgreSQL
+    ↓
+Load Balancer
+    ↓
+Multiple FastAPI Instances
+    ↓
+Supabase
+    +
+ML Workers / Services
 ```
 
-Docker Compose will eventually be used to simplify running these services together.
+If ML inference becomes computationally expensive, ML processing can later be separated into dedicated workers or services without changing the frontend architecture.
 
-Conceptually:
+---
+
+## 20. Architecture Principles
+
+The project follows these principles:
+
+1. Keep frontend and backend responsibilities separate.
+2. Use FastAPI as the central application backend.
+3. Use Supabase PostgreSQL for structured persistent data.
+4. Use Supabase Storage for persistent audio files.
+5. Keep ML implementation independent from the frontend.
+6. Keep the ML interface stable even when internal models change.
+7. Do not expose server-side secrets to the frontend.
+8. Check user ownership before accessing private resources.
+9. Store model/version information with analysis results.
+10. Keep the system modular and testable.
+11. Avoid unnecessary changes to established shared contracts.
+12. Changes affecting multiple components must be coordinated.
+
+---
+
+## 21. Main Data Flow
+
+The complete application flow is:
 
 ```text
-Docker Compose
-│
-├── Backend
-├── ML Service
-├── PostgreSQL
-└── Frontend/Web Server
+                         USER
+                           │
+                           ▼
+                      FRONTEND
+                           │
+                    REST / WebSocket
+                           │
+                           ▼
+                       FASTAPI
+                           │
+             ┌─────────────┼─────────────┐
+             │             │             │
+             ▼             ▼             ▼
+        Supabase       Supabase          ML
+        PostgreSQL      Storage         System
+             │             │             │
+             │             │        Prediction
+             │             │             │
+             └─────────────┴──────┬──────┘
+                                  │
+                                  ▼
+                              FASTAPI
+                                  │
+                                  ▼
+                              FRONTEND
+                                  │
+                                  ▼
+                                RESULT
 ```
 
 ---
 
-# 15. Final Data Flow
+## 22. Final Architecture Summary
 
-The main VoiceShield pipeline can be summarized as:
+The final VoiceShield architecture is:
 
 ```text
-              AUDIO
-                ↓
-            FRONTEND
-                ↓
-             BACKEND
-                ↓
-        ┌───────┴───────┐
-        ↓               ↓
-       ML            DATABASE
-        ↓
-   ML Prediction
-        ↓
-    Risk Engine
-        ↓
-    DATABASE
-        ↓
-     FRONTEND
-        ↓
-      RESULT
+                         VOICESHIELD
+                              │
+                              ▼
+                    ┌──────────────────┐
+                    │     Frontend     │
+                    │   HTML/CSS/JS    │
+                    │    Bootstrap     │
+                    └────────┬─────────┘
+                             │
+                       REST / WebSocket
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │      FastAPI     │
+                    │      Backend     │
+                    └───────┬────┬─────┘
+                            │    │
+                 ┌──────────┘    └──────────┐
+                 ▼                           ▼
+        ┌──────────────────┐       ┌──────────────────┐
+        │     Supabase     │       │    ML System     │
+        │                  │       │                  │
+        │   PostgreSQL     │       │  Preprocessing   │
+        │   Storage        │       │  Detection       │
+        │                  │       │  Verification    │
+        │                  │       │  Explainability  │
+        └──────────────────┘       └──────────────────┘
 ```
 
-The goal is to keep each part independent enough that the four team members can develop in parallel while still following the same interfaces and data structures.
+This document represents the current system architecture baseline for VoiceShield.
+
+Any future implementation should remain compatible with this architecture and the other shared project contracts, especially:
+
+```text
+docs/API_CONTRACT.md
+docs/DATABASE_SCHEMA.md
+docs/ML_SPECIFICATION.md
+```
+
+Changes that affect these boundaries should be coordinated before implementation.
