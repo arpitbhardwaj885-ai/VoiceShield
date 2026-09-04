@@ -1,0 +1,304 @@
+/* ==========================================================================
+   VoiceShield — Forensic Audio Analyzer Module Stylesheet
+   ========================================================================== */
+
+:root {
+  --vs-surface-card: rgba(13, 17, 27, 0.78);
+  --vs-border-glow: rgba(76, 201, 240, 0.35);
+  --vs-cyan: #4CC9F0;
+  --vs-flare-red: #FF3B30;
+  --vs-flare-orange: #FF6B35;
+}
+
+/* Ambient Canvas Glow */
+.analyzer-bg-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle at 80% 15%, rgba(255, 59, 48, 0.14) 0%, transparent 55%),
+              radial-gradient(circle at 20% 85%, rgba(76, 201, 240, 0.08) 0%, transparent 50%),
+              #030407;
+}
+
+/* Application Navbar Styling */
+.app-navbar {
+  background: rgba(3, 4, 7, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--vs-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 0.85rem 0;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: #FFFFFF;
+}
+
+.brand-glyph {
+  font-size: 1.15rem;
+  color: #FFFFFF;
+}
+
+.brand-title {
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.2em;
+}
+
+.nav-link-ws {
+  color: #94A3B8;
+  font-size: 0.775rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.nav-link-ws:hover,
+.nav-link-ws.active {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Viewport & Card Scaffolding */
+.analyzer-viewport {
+  position: relative;
+  z-index: 1;
+  padding: 2.5rem 0 4rem;
+  flex: 1;
+}
+
+.glass-card {
+  background: var(--vs-surface-card);
+  border: 1px solid var(--vs-border);
+  border-radius: 18px;
+  padding: 1.75rem;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  transition: border-color 0.25s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--vs-border-glow);
+}
+
+/* Mode Switchers (Upload vs Live Record) */
+.mode-tab-group {
+  display: inline-flex;
+  background: rgba(3, 4, 7, 0.8);
+  border: 1px solid var(--vs-border);
+  padding: 0.25rem;
+  border-radius: 9999px;
+}
+
+.mode-tab-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-size: 0.775rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.mode-tab-btn.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* File Dropzone Area */
+.dropzone-box {
+  border: 1.5px dashed rgba(255, 255, 255, 0.18);
+  background: rgba(3, 4, 7, 0.5);
+  border-radius: 14px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.dropzone-box:hover,
+.dropzone-box.drag-over {
+  border-color: var(--vs-cyan);
+  background: rgba(76, 201, 240, 0.04);
+}
+
+.upload-icon-circle {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.25rem;
+  border-radius: 50%;
+  background: rgba(76, 201, 240, 0.1);
+  border: 1px solid rgba(76, 201, 240, 0.3);
+  color: var(--vs-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 0 20px rgba(76, 201, 240, 0.18);
+}
+
+/* Microphone Recorder Panel */
+.recorder-panel {
+  display: none;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: rgba(3, 4, 7, 0.5);
+  border: 1px solid var(--vs-border);
+  border-radius: 14px;
+}
+
+.recorder-panel.active {
+  display: block;
+}
+
+.btn-record-mic {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(255, 59, 48, 0.15);
+  border: 2px solid var(--vs-flare-red);
+  color: var(--vs-flare-red);
+  font-size: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 25px rgba(255, 59, 48, 0.25);
+}
+
+.btn-record-mic:hover {
+  background: var(--vs-flare-red);
+  color: #FFFFFF;
+  transform: scale(1.05);
+}
+
+.btn-record-mic.recording {
+  animation: recordPulse 1.4s infinite;
+  background: var(--vs-flare-red);
+  color: #FFFFFF;
+}
+
+@keyframes recordPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+  50% { box-shadow: 0 0 0 16px rgba(255, 59, 48, 0); }
+}
+
+/* Staged Audio File Notification Bar */
+.staged-file-card {
+  display: none;
+  background: rgba(3, 4, 7, 0.85);
+  border: 1px solid var(--vs-border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-top: 1.25rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.staged-file-card.show {
+  display: flex;
+}
+
+.audio-preview-bar {
+  height: 32px;
+}
+
+/* Diagnostics Output Console */
+.terminal-console {
+  background: #020305;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.775rem;
+  color: #4CC9F0;
+  height: 230px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.terminal-line {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.terminal-time {
+  color: #64748B;
+}
+
+/* Switch Rows */
+.param-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.param-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: 0.15rem;
+}
+
+.param-caption {
+  font-size: 0.75rem;
+  color: #94A3B8;
+}
+
+.form-check-input-cyan:checked {
+  background-color: var(--vs-cyan);
+  border-color: var(--vs-cyan);
+}
+
+/* Trigger Button */
+.btn-launch-analysis {
+  width: 100%;
+  background: linear-gradient(135deg, var(--vs-flare-red) 0%, var(--vs-flare-orange) 50%, var(--vs-cyan) 100%);
+  color: #FFFFFF !important;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 1rem 1.5rem;
+  border-radius: 9999px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(255, 59, 48, 0.35);
+  transition: all 0.25s ease;
+}
+
+.btn-launch-analysis:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 35px rgba(76, 201, 240, 0.5);
+}
+
+.btn-launch-analysis:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

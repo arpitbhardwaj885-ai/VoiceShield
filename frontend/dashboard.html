@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operations Terminal — VoiceShield</title>
+  <meta name="description" content="Operational dashboard and acoustic telemetry monitoring for VoiceShield.">
+
+  <!-- Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Core & Page Specific Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+
+  <style>
+    /* ==========================================================================
+       Dashboard Workspace Theme (Horizon Glow + High-Contrast Obsidian)
+       ========================================================================== */
+    :root {
+      --vs-surface: rgba(10, 13, 20, 0.85);
+      --vs-surface-card: rgba(13, 17, 27, 0.75);
+      --vs-surface-hover: rgba(22, 28, 42, 0.9);
+      --vs-border: rgba(255, 255, 255, 0.12);
+      --vs-border-glow: rgba(76, 201, 240, 0.35);
+      --vs-cyan: #4CC9F0;
+      --vs-danger: #FF4D4D;
+      --vs-warning: #FFB703;
+      --vs-success: #10B981;
+    }
+
+    .dashboard-bg-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(circle at 85% 10%, rgba(255, 59, 48, 0.15) 0%, transparent 50%),
+                  radial-gradient(circle at 15% 90%, rgba(76, 201, 240, 0.08) 0%, transparent 45%),
+                  #030407;
+    }
+
+    .app-navbar {
+      background: rgba(3, 4, 7, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--vs-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.85rem 0;
+    }
+
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      color: var(--vs-text-white);
+    }
+
+    .brand-glyph {
+      font-size: 1.15rem;
+      color: #FFFFFF;
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 0.875rem;
+      letter-spacing: 0.2em;
+    }
+
+    .nav-link-ws {
+      color: var(--vs-text-muted);
+      font-size: 0.775rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-decoration: none;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link-ws:hover,
+    .nav-link-ws.active {
+      color: var(--vs-text-white);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .btn-inspect-pill {
+      background: rgba(76, 201, 240, 0.15);
+      border: 1px solid rgba(76, 201, 240, 0.4);
+      color: var(--vs-cyan) !important;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.5rem 1.15rem;
+      border-radius: 9999px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-inspect-pill:hover {
+      background: rgba(76, 201, 240, 0.28);
+      border-color: var(--vs-cyan);
+      box-shadow: 0 0 16px rgba(76, 201, 240, 0.35);
+    }
+
+    .dashboard-viewport {
+      position: relative;
+      z-index: 1;
+      padding: 2.5rem 0 4rem;
+      flex: 1;
+    }
+
+    .glass-card {
+      background: var(--vs-surface-card);
+      border: 1px solid var(--vs-border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 16px 35px rgba(0, 0, 0, 0.6);
+      transition: border-color 0.25s ease, transform 0.2s ease;
+    }
+
+    .glass-card:hover {
+      border-color: var(--vs-border-glow);
+    }
+
+    .metric-meta-label {
+      font-size: 0.725rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--vs-text-muted);
+    }
+
+    .metric-digit {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin: 0.35rem 0;
+    }
+
+    .metric-sub {
+      font-size: 0.775rem;
+      color: var(--vs-text-muted);
+    }
+
+    .telemetry-waveform-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      gap: 3px;
+      padding: 0.5rem 0;
+    }
+
+    .telemetry-wave-col {
+      flex: 1;
+      background: linear-gradient(180deg, var(--vs-flare-red) 0%, var(--vs-flare-cyan) 100%);
+      border-radius: 2px;
+      animation: audioPulse 1.8s ease-in-out infinite alternate;
+    }
+
+    .telemetry-wave-col:nth-child(2n) { animation-delay: 0.15s; }
+    .telemetry-wave-col:nth-child(3n) { animation-delay: 0.35s; }
+    .telemetry-wave-col:nth-child(4n) { animation-delay: 0.5s; }
+    .telemetry-wave-col:nth-child(5n) { animation-delay: 0.2s; }
+
+    @keyframes audioPulse {
+      0% { height: 12%; opacity: 0.35; }
+      100% { height: 100%; opacity: 1; }
+    }
+
+    .table-editorial {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .table-editorial th {
+      color: var(--vs-text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--vs-border);
+    }
+
+    .table-editorial td {
+      padding: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      vertical-align: middle;
+    }
+
+    .table-editorial tr:hover td {
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .threat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.725rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .threat-pill.critical {
+      background: rgba(255, 77, 77, 0.15);
+      border: 1px solid rgba(255, 77, 77, 0.4);
+      color: var(--vs-danger);
+    }
+
+    .threat-pill.authentic {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: var(--vs-success);
+    }
+
+    .threat-pill.suspicious {
+      background: rgba(255, 183, 3, 0.15);
+      border: 1px solid rgba(255, 183, 3, 0.4);
+      color: var(--vs-warning);
+    }
+  </style>
+</head>
+<body class="editorial-body">
+
+  <div class="dashboard-bg-canvas" aria-hidden="true"></div>
+
+  <!-- Top App Navigation -->
+  <header class="app-navbar">
+    <div class="container-fluid px-lg-5 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-4">
+        <a class="brand-link" href="index.html">
+          <span class="brand-glyph">✦</span>
+          <span class="brand-title">VOICESHIELD</span>
+        </a>
+
+        <nav class="d-none d-md-flex gap-1">
+          <a class="nav-link-ws active" href="dashboard.html">DASHBOARD</a>
+          <a class="nav-link-ws" href="analyze.html">ANALYZE AUDIO</a>
+          <a class="nav-link-ws" href="live-analysis.html">LIVE STREAM</a>
+          <a class="nav-link-ws" href="history.html">AUDIT LOGS</a>
+          <a class="nav-link-ws" href="speaker-profile.html">SPEAKERS</a>
+        </nav>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <a class="btn-inspect-pill" href="analyze.html">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Inspect Audio</span>
+        </a>
+        <button class="btn btn-sm btn-outline-secondary border-0 text-white" onclick="Auth.logout()" title="Sign Out">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="dashboard-viewport">
+    <div class="container-fluid px-lg-5">
+
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-4 pb-2 border-bottom border-white border-opacity-10">
+        <div>
+          <h1 class="h3 fw-bold mb-1">Defense Operations Terminal</h1>
+          <p class="text-secondary small mb-0 font-mono">NODE: SIH-IND-01 &bull; ENGINE: PYTORCH-RESNET-ASV &bull; STATUS: OPTIMAL</p>
+        </div>
+        <div class="font-mono small text-secondary">
+          Active Monitor: <span class="text-white" id="monitorStatus">16kHz Forensic Stream</span>
+        </div>
+      </div>
+
+      <!-- Core Metrics Row -->
+      <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-sm-6">
+          <div class="glass-card">
+            <div class="metric-meta-label">Total Audio Ingestions</div>
+            <div class="metric-digit font-mono text-white" id="totalScansCount">2,841</div>
+            <div class="metric-sub"><i class="fa-solid fa-arrow-trend-up text-success me-1"></i> +18.4% this session</div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+          <div class="glass-card">
+            <div class="metric-meta-label">Synthetic Clones Isolated</div>
+            <div class="metric-digit font-mono text-danger" id="threatCount">342</div>
+            <div class="metric-sub">12.03% total flag rate</div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+          <div class="glass-card">
+            <div class="metric-meta-label">Enrolled Voice Profiles</div>
+            <div class="metric-digit font-mono text-white" id="speakerProfilesCount">64</div>
+            <div class="metric-sub">Cosine similarity baseline: 0.78</div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+          <div class="glass-card">
+            <div class="metric-meta-label">Inference Processing Lag</div>
+            <div class="metric-digit font-mono" style="color: var(--vs-cyan);">210ms</div>
+            <div class="metric-sub">Normalized mono processing</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Telemetry & Fast Ingestion -->
+      <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+          <div class="glass-card h-100 d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="metric-meta-label">Active Acoustic Slicing</span>
+                <span class="badge bg-danger bg-opacity-25 text-danger font-mono small">LIVE TRACE</span>
+              </div>
+              <p class="text-secondary small mb-3">Real-time spectral Fourier slice monitoring for phase cancellation glitches.</p>
+              
+              <div class="telemetry-waveform-strip mb-3">
+                <div class="telemetry-wave-col" style="height: 35%;"></div>
+                <div class="telemetry-wave-col" style="height: 70%;"></div>
+                <div class="telemetry-wave-col" style="height: 25%;"></div>
+                <div class="telemetry-wave-col" style="height: 85%;"></div>
+                <div class="telemetry-wave-col" style="height: 50%;"></div>
+                <div class="telemetry-wave-col" style="height: 100%;"></div>
+                <div class="telemetry-wave-col" style="height: 65%;"></div>
+                <div class="telemetry-wave-col" style="height: 40%;"></div>
+                <div class="telemetry-wave-col" style="height: 90%;"></div>
+                <div class="telemetry-wave-col" style="height: 60%;"></div>
+                <div class="telemetry-wave-col" style="height: 30%;"></div>
+                <div class="telemetry-wave-col" style="height: 75%;"></div>
+                <div class="telemetry-wave-col" style="height: 45%;"></div>
+                <div class="telemetry-wave-col" style="height: 95%;"></div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between font-mono text-secondary small pt-2 border-top border-white border-opacity-10">
+              <span>BAND: 20Hz — 8000Hz</span>
+              <span class="text-info">16.0 kHz FIXED</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-8">
+          <div class="glass-card h-100 d-flex flex-column justify-content-between">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h5 class="fw-bold mb-0">Fast Ingestion Channel</h5>
+                <span class="text-secondary small">Directly verify suspect speech audio against active neural classifiers</span>
+              </div>
+              <a href="analyze.html" class="btn-inspect-pill">Full Lab &rarr;</a>
+            </div>
+
+            <div class="p-4 rounded-3 border border-white border-opacity-10 text-center bg-black bg-opacity-40 my-2" style="cursor: pointer;" onclick="window.location.href='analyze.html'">
+              <i class="fa-solid fa-cloud-arrow-up fs-2 text-info mb-2"></i>
+              <div class="fw-semibold mb-1">Drag and drop suspect voice recording</div>
+              <div class="text-secondary small font-mono">WAV, MP3, FLAC, M4A up to 25MB (Automated 16kHz conversion)</div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-2 text-secondary small font-mono">
+              <span>Zero retention policy active</span>
+              <span>FastAPI Gateway Ready</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ingestion Ledger -->
+      <div class="glass-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0">Recent Forensic Audio Ingestions</h5>
+          <a href="history.html" class="text-secondary small text-decoration-none font-mono">Open Complete Ledger &rarr;</a>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-editorial font-mono" id="dashboardHistoryTable">
+            <thead>
+              <tr>
+                <th>Target Intercept</th>
+                <th>Sample Rate</th>
+                <th>Classification Result</th>
+                <th>Clone Confidence</th>
+                <th>Speaker Vector</th>
+                <th>Logged Time</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="dashboardTableBody">
+              <tr>
+                <td>
+                  <i class="fa-solid fa-file-audio text-danger me-2"></i>
+                  <span class="text-white">executive_wire_instruction.wav</span>
+                </td>
+                <td>16 kHz Mono</td>
+                <td><span class="threat-pill critical"><i class="fa-solid fa-triangle-exclamation"></i> HIGH RISK CLONE</span></td>
+                <td class="text-danger fw-bold">98.4%</td>
+                <td class="text-warning">38.2% Match</td>
+                <td class="text-secondary">10:14:02 UTC</td>
+                <td><a href="result.html?id=sim_01" class="btn btn-sm btn-outline-secondary py-0 small font-mono">Spectrogram</a></td>
+              </tr>
+              <tr>
+                <td>
+                  <i class="fa-solid fa-file-audio text-success me-2"></i>
+                  <span class="text-white">support_desk_auth_call_902.mp3</span>
+                </td>
+                <td>44.1 kHz ➔ 16 kHz</td>
+                <td><span class="threat-pill authentic"><i class="fa-solid fa-circle-check"></i> AUTHENTIC VOICE</span></td>
+                <td class="text-success">2.1%</td>
+                <td class="text-success">95.4% Match</td>
+                <td class="text-secondary">09:58:30 UTC</td>
+                <td><a href="result.html?id=sim_02" class="btn btn-sm btn-outline-secondary py-0 small font-mono">Spectrogram</a></td>
+              </tr>
+              <tr>
+                <td>
+                  <i class="fa-solid fa-file-audio text-warning me-2"></i>
+                  <span class="text-white">telephony_voip_sample_12.wav</span>
+                </td>
+                <td>16 kHz Mono</td>
+                <td><span class="threat-pill suspicious"><i class="fa-solid fa-triangle-exclamation"></i> PHASE ANOMALY</span></td>
+                <td class="text-warning fw-bold">64.8%</td>
+                <td class="text-muted">Unenrolled</td>
+                <td class="text-secondary">09:12:15 UTC</td>
+                <td><a href="result.html?id=sim_03" class="btn btn-sm btn-outline-secondary py-0 small font-mono">Spectrogram</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer-cinematic py-3 text-center">
+    <div class="container font-mono small text-secondary">
+      VoiceShield &copy; 2026 &bull; FastAPI Telemetry Core &bull; Supabase Backend &bull; PyTorch Neural Classification
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JavaScript Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Complete Dependency Chain (Linked in Strict Order) -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/dashboard.js"></script>
+
+  <script>
+    // Enforce authentication gate
+    if (typeof Auth !== 'undefined' && typeof Auth.requireAuth === 'function') {
+      Auth.requireAuth();
+    }
+  </script>
+</body>
+</html>

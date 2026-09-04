@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forensic Audit Ledger — VoiceShield</title>
+  <meta name="description" content="Immutable history ledger of acoustic voice scans, deepfake verdicts, and telemetry logs.">
+
+  <!-- Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- External Stylesheets (Zero Inline CSS) -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/history.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="editorial-body">
+
+  <div class="history-bg-canvas" aria-hidden="true"></div>
+
+  <!-- Top Application Navbar -->
+  <header class="app-navbar">
+    <div class="container-fluid px-lg-5 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-4">
+        <a class="brand-link" href="index.html">
+          <span class="brand-glyph">✦</span>
+          <span class="brand-title">VOICESHIELD</span>
+        </a>
+
+        <nav class="d-none d-md-flex gap-1">
+          <a class="nav-link-ws" href="dashboard.html">DASHBOARD</a>
+          <a class="nav-link-ws" href="analyze.html">ANALYZE AUDIO</a>
+          <a class="nav-link-ws" href="live-analysis.html">LIVE STREAM</a>
+          <a class="nav-link-ws active" href="history.html">AUDIT LOGS</a>
+          <a class="nav-link-ws" href="speaker-profile.html">SPEAKERS</a>
+        </nav>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <a class="btn-inspect-pill" href="analyze.html">
+          <i class="fa-solid fa-plus"></i>
+          <span>New Analysis</span>
+        </a>
+        <button class="btn btn-sm btn-outline-secondary border-0 text-white" id="logoutBtn" title="Sign Out">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Viewport -->
+  <main class="history-viewport">
+    <div class="container-fluid px-lg-5">
+
+      <!-- Header & Stats Summary -->
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-2 border-bottom border-white border-opacity-10">
+        <div>
+          <h1 class="h3 fw-bold mb-1">Forensic Audit Ledger</h1>
+          <p class="text-secondary small mb-0 font-mono">ENCRYPTED TELEMETRY STORE &bull; IMMUTABLE EVENT RETENTION &bull; FASTAPI SYNC</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn-action-outline font-mono" id="btnExportAllCsv">
+            <i class="fa-solid fa-file-csv me-1"></i> Export CSV
+          </button>
+          <button type="button" class="btn-action-outline font-mono" id="btnExportAllJson">
+            <i class="fa-solid fa-file-code me-1"></i> Export JSON
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Ribbon -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+          <div class="glass-card py-3 px-4">
+            <div class="metric-meta-label">Total Ingested Records</div>
+            <div class="metric-digit font-mono text-white" id="totalRecordsCount">0</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="glass-card py-3 px-4">
+            <div class="metric-meta-label">Critical Clones Flagged</div>
+            <div class="metric-digit font-mono text-danger" id="criticalClonesCount">0</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="glass-card py-3 px-4">
+            <div class="metric-meta-label">Verified Authentic</div>
+            <div class="metric-digit font-mono text-success" id="authenticCount">0</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="glass-card py-3 px-4">
+            <div class="metric-meta-label">Biometric Verification Scans</div>
+            <div class="metric-digit font-mono text-info" id="biometricCount">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ledger Filter Controls -->
+      <div class="glass-card mb-4 p-3">
+        <div class="row g-3 align-items-center">
+          
+          <!-- Search Input -->
+          <div class="col-lg-5 col-md-6">
+            <div class="input-wrapper">
+              <input 
+                type="text" 
+                class="form-control-vs font-mono" 
+                id="searchFilterInput" 
+                placeholder="Search by file name, Scan ID, or speaker profile..."
+              >
+              <i class="fa-solid fa-magnifying-glass input-icon-left"></i>
+            </div>
+          </div>
+
+          <!-- Risk Level Filter -->
+          <div class="col-lg-3 col-md-3">
+            <select class="form-select bg-black text-white border-secondary font-mono filter-dropdown" id="riskLevelSelect">
+              <option value="ALL">All Risk Classifications</option>
+              <option value="CRITICAL">Critical Clones (&gt;70%)</option>
+              <option value="MEDIUM">Medium / Anomalous (40%-70%)</option>
+              <option value="LOW">Low / Authentic (&lt;40%)</option>
+            </select>
+          </div>
+
+          <!-- Time Sort Option -->
+          <div class="col-lg-2 col-md-3">
+            <select class="form-select bg-black text-white border-secondary font-mono filter-dropdown" id="timeSortSelect">
+              <option value="NEWEST">Newest First</option>
+              <option value="OLDEST">Oldest First</option>
+              <option value="RISK_HIGH">Highest Risk</option>
+            </select>
+          </div>
+
+          <!-- Clear Filters -->
+          <div class="col-lg-2 col-md-12 text-md-end">
+            <button type="button" class="btn-clear-filter font-mono w-100" id="btnClearFilters">
+              <i class="fa-solid fa-arrows-rotate me-1"></i> Reset
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Ledger Data Table -->
+      <div class="glass-card p-0 overflow-hidden">
+        <div class="table-responsive">
+          <table class="table-editorial font-mono mb-0" id="historyTable">
+            <thead>
+              <tr>
+                <th>Scan Identifier</th>
+                <th>Target Audio Payload</th>
+                <th>Classification</th>
+                <th>Clone Confidence</th>
+                <th>Speaker Profile</th>
+                <th>Ingestion Timestamp</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <tr>
+                <td colspan="7" class="text-center text-secondary py-5">
+                  <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                  Loading historical forensic audit trail...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Dock -->
+        <div class="pagination-dock d-flex flex-column flex-sm-row justify-content-between align-items-center px-4 py-3 border-top border-white border-opacity-10">
+          <div class="text-secondary small font-mono mb-2 mb-sm-0" id="paginationInfo">
+            Showing records 0 to 0 of 0
+          </div>
+          
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn-page-step" id="btnPrevPage" disabled>
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span class="font-mono text-white small px-2" id="currentPageDisplay">Page 1</span>
+            <button type="button" class="btn-page-step" id="btnNextPage" disabled>
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Sticky Footer -->
+  <footer class="footer-cinematic py-3 text-center">
+    <div class="container font-mono small text-secondary">
+      VoiceShield &copy; 2026 &bull; Voice Clone &amp; Impersonation Defense &bull; SIH26104
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JavaScript Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Complete Dependency Chain -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/history.js"></script>
+
+  <script>
+    if (typeof Auth !== 'undefined' && typeof Auth.requireAuth === 'function') {
+      Auth.requireAuth();
+    }
+  </script>
+</body>
+</html>

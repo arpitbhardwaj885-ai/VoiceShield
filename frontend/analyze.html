@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forensic Audio Analyzer — VoiceShield</title>
+  <meta name="description" content="Acoustic artifact inspection and AI synthetic voice classifier terminal.">
+
+  <!-- Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- External Stylesheets (Zero Inline CSS) -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/analyze.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="editorial-body">
+
+  <div class="analyzer-bg-canvas" aria-hidden="true"></div>
+
+  <!-- Top App Navigation -->
+  <header class="app-navbar">
+    <div class="container-fluid px-lg-5 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-4">
+        <a class="brand-link" href="index.html">
+          <span class="brand-glyph">✦</span>
+          <span class="brand-title">VOICESHIELD</span>
+        </a>
+
+        <nav class="d-none d-md-flex gap-1">
+          <a class="nav-link-ws" href="dashboard.html">DASHBOARD</a>
+          <a class="nav-link-ws active" href="analyze.html">ANALYZE AUDIO</a>
+          <a class="nav-link-ws" href="live-analysis.html">LIVE STREAM</a>
+          <a class="nav-link-ws" href="history.html">AUDIT LOGS</a>
+          <a class="nav-link-ws" href="speaker-profile.html">SPEAKERS</a>
+        </nav>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <span class="font-mono text-secondary small d-none d-sm-inline-block">INSPECTOR_ENGINE_v2.4</span>
+        <button class="btn btn-sm btn-outline-secondary border-0 text-white" id="logoutBtn" title="Sign Out">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Analysis Stage -->
+  <main class="analyzer-viewport">
+    <div class="container-fluid px-lg-5">
+
+      <!-- Header & Tab Controls -->
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-2 border-bottom border-white border-opacity-10">
+        <div>
+          <h1 class="h3 fw-bold mb-1">Acoustic Artifact Inspection Terminal</h1>
+          <p class="text-secondary small mb-0 font-mono">16 kHz DOWNSAMPLE &bull; STFT FOURIER SLICER &bull; SPECTRAL VOCODER ISOLATION</p>
+        </div>
+        
+        <div class="mode-tab-group">
+          <button type="button" class="mode-tab-btn active" id="tabUploadBtn">
+            <i class="fa-solid fa-cloud-arrow-up me-1"></i> File Payload
+          </button>
+          <button type="button" class="mode-tab-btn" id="tabRecordBtn">
+            <i class="fa-solid fa-microphone me-1"></i> Live Intercept
+          </button>
+        </div>
+      </div>
+
+      <!-- Workbench Grid -->
+      <div class="row g-4">
+        
+        <!-- Left: Audio Ingestion -->
+        <div class="col-lg-7">
+          <div class="glass-card">
+            
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-bold mb-0">Audio Ingestion Payload</h5>
+              <span class="badge bg-secondary bg-opacity-25 font-mono text-cyan small">MAX 25MB</span>
+            </div>
+
+            <!-- Upload Dropzone -->
+            <div id="uploadContainer">
+              <input type="file" id="audioFileInput" class="d-none" accept=".wav,.mp3,.flac,.m4a">
+              <div class="dropzone-box" id="dropZone">
+                <div class="upload-icon-circle">
+                  <i class="fa-solid fa-wave-square"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Drop suspect audio payload here</h5>
+                <p class="text-secondary small mb-2">Or click to browse storage files</p>
+                <div class="font-mono text-muted small">WAV, MP3, FLAC, M4A (Normalized to 16kHz Mono)</div>
+              </div>
+            </div>
+
+            <!-- Live Mic Recorder Panel -->
+            <div id="recordContainer" class="recorder-panel">
+              <div class="mb-3">
+                <button type="button" class="btn-record-mic" id="recordMicBtn">
+                  <i class="fa-solid fa-microphone" id="recordIcon"></i>
+                </button>
+              </div>
+              <h5 class="fw-bold mb-1" id="recordStatusTitle">Press to Record Microphone</h5>
+              <div class="font-mono text-secondary small mb-3" id="recordTimer">00:00:00</div>
+              <p class="text-secondary small max-w-sm mx-auto">
+                Records lossless uncompressed mono audio directly from client workstation microphone input.
+              </p>
+            </div>
+
+            <!-- Staged File Card -->
+            <div class="staged-file-card" id="stagedFileCard">
+              <div class="d-flex align-items-center gap-3 overflow-hidden">
+                <i class="fa-solid fa-file-audio text-cyan fs-4"></i>
+                <div class="overflow-hidden">
+                  <div class="text-white fw-bold text-truncate font-mono" id="stagedFileName">sample.wav</div>
+                  <div class="text-secondary small font-mono" id="stagedFileSize">0.00 MB</div>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <audio id="audioPreview" controls class="d-none d-md-block audio-preview-bar"></audio>
+                <button type="button" class="btn btn-sm btn-outline-danger border-0" id="clearStagedBtn" title="Remove file">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Telemetry Output Console -->
+            <div class="mt-4">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="font-mono text-secondary small text-uppercase">Diagnostic Pipeline Logs</span>
+                <span class="font-mono text-info small" id="pipelineStatusBadge">AWAITING_INPUT</span>
+              </div>
+              <div class="terminal-console" id="terminalLog">
+                <div class="terminal-line">
+                  <span class="terminal-time">[00:00:00]</span>
+                  <span>Forensic terminal initialized. Awaiting audio intercept payload...</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right: Verification Parameters -->
+        <div class="col-lg-5">
+          <div class="glass-card">
+            
+            <h5 class="fw-bold mb-3">Model Verification Parameters</h5>
+
+            <!-- Target Speaker Vector Selector -->
+            <div class="mb-4">
+              <label for="speakerSelect" class="font-mono text-secondary small text-uppercase mb-1 d-block">
+                Reference Speaker Vector
+              </label>
+              <select id="speakerSelect" class="form-select bg-black text-white border-secondary font-mono">
+                <option value="">-- No Speaker Comparison (Deepfake Only) --</option>
+                <option value="spk_01">Satya Nadella [Enrolled: 2026-08-14]</option>
+                <option value="spk_02">Tim Cook [Enrolled: 2026-07-29]</option>
+                <option value="spk_03">Sam Altman [Enrolled: 2026-08-01]</option>
+              </select>
+              <div class="font-mono text-secondary text-xs mt-1">
+                Calculates cosine distance score between input and stored voiceprint.
+              </div>
+            </div>
+
+            <!-- Analysis Option Switches -->
+            <div class="param-switch-row">
+              <div>
+                <div class="param-title">STFT Spectrogram Decomposition</div>
+                <div class="param-caption">Exposes vocoder synthesis frequencies &amp; artifacts</div>
+              </div>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input form-check-input-cyan" type="checkbox" id="paramSpectro" checked>
+              </div>
+            </div>
+
+            <div class="param-switch-row">
+              <div>
+                <div class="param-title">Temporal Slicing &amp; Timestamps</div>
+                <div class="param-caption">Pinpoints spliced time windows (e.g. 00:04.2)</div>
+              </div>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input form-check-input-cyan" type="checkbox" id="paramTemporal" checked>
+              </div>
+            </div>
+
+            <div class="param-switch-row">
+              <div>
+                <div class="param-title">Phase Inversion Telemetry</div>
+                <div class="param-caption">Flags algorithmic neural vocoder glitches</div>
+              </div>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input form-check-input-cyan" type="checkbox" id="paramPhase" checked>
+              </div>
+            </div>
+
+            <!-- Launch Button -->
+            <div class="mt-4 pt-2">
+              <button type="button" class="btn-launch-analysis" id="launchAnalysisBtn" disabled>
+                <i class="fa-solid fa-microchip"></i>
+                <span id="launchBtnText">Run Forensic Classification</span>
+              </button>
+              <div class="font-mono text-center text-secondary text-xs mt-2">
+                FastAPI /api/analysis &bull; PyTorch ResNet-ASV
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer-cinematic py-3 text-center">
+    <div class="container font-mono small text-secondary">
+      VoiceShield &copy; 2026 &bull; Voice Clone &amp; Impersonation Defense &bull; SIH26104
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/recorder.js"></script>
+  <script src="js/upload.js"></script>
+</body>
+</html>

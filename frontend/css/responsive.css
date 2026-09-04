@@ -1,0 +1,144 @@
+/* ==========================================================================
+   VoiceShield — Responsive Scaling & Breakpoints
+   Targets: Mobile (<576px), Tablet (576px–991px), Large Displays (≥1200px)
+   ========================================================================== */
+
+/* Mobile Phones (Max Width: 575.98px) */
+@media (max-width: 575.98px) {
+  .navbar-cinematic {
+    padding: 1.25rem 0;
+  }
+
+  /* Scale celestial artwork so background remains clean and unobtrusive */
+  .aurora-glow-red {
+    width: 110vw;
+    height: 45vh;
+    top: -5%;
+    right: -25%;
+    filter: blur(55px);
+  }
+
+  .aurora-glow-cyan {
+    width: 80vw;
+    height: 35vh;
+    top: 20%;
+    right: -10%;
+    filter: blur(50px);
+  }
+
+  .celestial-eclipse {
+    width: 85vw;
+    height: 85vw;
+    left: 15%;
+    top: 5%;
+  }
+
+  .water-reflection-plane {
+    height: 28%;
+  }
+
+  .solitary-observer {
+    bottom: 8%;
+    left: 70%;
+    transform: translateX(-50%) scale(0.85);
+  }
+
+  /* Typography & Layout Adjustments */
+  .hero-cinematic {
+    padding: 6.5rem 0 3rem;
+    min-height: auto;
+  }
+
+  .hero-headline {
+    font-size: 2.35rem;
+    line-height: 1.15;
+    letter-spacing: -1px;
+  }
+
+  .hero-subtext {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .category-pill {
+    font-size: 0.725rem;
+    padding: 0.35rem 0.85rem;
+  }
+
+  .btn-translucent-pill {
+    width: 100%;
+    text-align: center;
+    padding: 0.85rem 1.5rem;
+  }
+
+  .proof-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+
+  .navbar-collapse {
+    background: rgba(3, 4, 7, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-top: 1rem;
+  }
+}
+
+/* Tablets & Small Displays (576px to 991.98px) */
+@media (min-width: 576px) and (max-width: 991.98px) {
+  .hero-cinematic {
+    padding: 7rem 0 4rem;
+  }
+
+  .hero-headline {
+    font-size: 3.25rem;
+    letter-spacing: -1.5px;
+  }
+
+  .celestial-eclipse {
+    width: 65vw;
+    height: 65vw;
+    left: 25%;
+  }
+
+  .solitary-observer {
+    bottom: 10%;
+    left: 62%;
+  }
+
+  .navbar-collapse {
+    background: rgba(3, 4, 7, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-top: 1rem;
+  }
+}
+
+/* Landscape Mobile & Low-Height Screens */
+@media (max-height: 680px) {
+  .hero-cinematic {
+    min-height: auto;
+    padding-top: 6rem;
+    padding-bottom: 3rem;
+  }
+
+  .celestial-eclipse {
+    top: -20%;
+  }
+}
+
+/* Large Displays (Min Width: 1400px) */
+@media (min-width: 1400px) {
+  .hero-headline {
+    font-size: 4.75rem;
+  }
+
+  .hero-copy-wrapper {
+    max-width: 680px;
+  }
+}
