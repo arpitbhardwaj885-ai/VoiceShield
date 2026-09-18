@@ -1,0 +1,299 @@
+/* ==========================================================================
+   VoiceShield — Forensic Audit Ledger Stylesheet
+   ========================================================================== */
+
+:root {
+  --vs-surface-card: rgba(13, 17, 27, 0.78);
+  --vs-border-glow: rgba(76, 201, 240, 0.35);
+  --vs-cyan: #4CC9F0;
+  --vs-flare-red: #FF3B30;
+  --vs-danger: #FF4D4D;
+  --vs-warning: #FFB703;
+  --vs-success: #10B981;
+}
+
+/* Atmospheric Ambient Canvas */
+.history-bg-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle at 80% 12%, rgba(255, 59, 48, 0.12) 0%, transparent 55%),
+              radial-gradient(circle at 18% 88%, rgba(76, 201, 240, 0.08) 0%, transparent 50%),
+              #030407;
+}
+
+/* App Navbar */
+.app-navbar {
+  background: rgba(3, 4, 7, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--vs-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 0.85rem 0;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: #FFFFFF;
+}
+
+.brand-glyph {
+  font-size: 1.15rem;
+  color: #FFFFFF;
+}
+
+.brand-title {
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.2em;
+}
+
+.nav-link-ws {
+  color: #94A3B8;
+  font-size: 0.775rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.nav-link-ws:hover,
+.nav-link-ws.active {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.btn-inspect-pill {
+  background: rgba(76, 201, 240, 0.15);
+  border: 1px solid rgba(76, 201, 240, 0.4);
+  color: var(--vs-cyan) !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.5rem 1.15rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-inspect-pill:hover {
+  background: rgba(76, 201, 240, 0.28);
+  border-color: var(--vs-cyan);
+  box-shadow: 0 0 16px rgba(76, 201, 240, 0.35);
+}
+
+/* Page Viewport */
+.history-viewport {
+  position: relative;
+  z-index: 1;
+  padding: 2.5rem 0 4rem;
+  flex: 1;
+}
+
+/* Surface Glass Card */
+.glass-card {
+  background: var(--vs-surface-card);
+  border: 1px solid var(--vs-border);
+  border-radius: 18px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  transition: border-color 0.25s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--vs-border-glow);
+}
+
+/* Metric Tiles in Ribbon */
+.metric-meta-label {
+  font-size: 0.725rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94A3B8;
+}
+
+.metric-digit {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.2;
+  margin-top: 0.25rem;
+}
+
+/* Action Buttons */
+.btn-action-outline {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+  font-size: 0.775rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-action-outline:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Input Form Controls */
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon-left {
+  position: absolute;
+  left: 1.1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748B;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.form-control-vs {
+  width: 100%;
+  background-color: rgba(3, 4, 7, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 0.65rem 1rem 0.65rem 2.6rem;
+  font-size: 0.85rem;
+  color: #FFFFFF;
+  transition: all 0.2s ease;
+}
+
+.form-control-vs::placeholder {
+  color: #64748B;
+}
+
+.form-control-vs:focus {
+  background-color: rgba(3, 4, 7, 0.95);
+  border-color: var(--vs-cyan);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 201, 240, 0.2);
+  color: #FFFFFF;
+}
+
+.filter-dropdown {
+  font-size: 0.85rem;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+}
+
+.btn-clear-filter {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94A3B8;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-clear-filter:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+}
+
+/* Ledger Data Table */
+.table-editorial {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.table-editorial th {
+  color: #94A3B8;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--vs-border);
+  background: rgba(3, 4, 7, 0.6);
+}
+
+.table-editorial td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+
+.table-editorial tr:hover td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+/* Status Badges */
+.threat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.725rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.threat-pill.critical {
+  background: rgba(255, 77, 77, 0.15);
+  border: 1px solid rgba(255, 77, 77, 0.4);
+  color: var(--vs-danger);
+}
+
+.threat-pill.authentic {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--vs-success);
+}
+
+.threat-pill.suspicious {
+  background: rgba(255, 183, 3, 0.15);
+  border: 1px solid rgba(255, 183, 3, 0.4);
+  color: var(--vs-warning);
+}
+
+/* Pagination Control Buttons */
+.btn-page-step {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-page-step:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-page-step:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

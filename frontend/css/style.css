@@ -1,0 +1,387 @@
+/* ==========================================================================
+   VoiceShield — Cinematic Space Editorial Theme
+   Reference Aesthetic: Deep Obsidian Void + Sunset Flare + Horizon Reflection
+   ========================================================================== */
+
+:root {
+  --vs-void: #030407;
+  --vs-text-white: #FFFFFF;
+  --vs-text-muted: #8E92A0;
+  --vs-text-dim: #5C6070;
+  --vs-flare-red: #FF3B30;
+  --vs-flare-orange: #FF6B35;
+  --vs-flare-cyan: #4CC9F0;
+  --vs-pill-bg: rgba(255, 255, 255, 0.08);
+  --vs-pill-border: rgba(255, 255, 255, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body.editorial-body {
+  background-color: var(--vs-void);
+  color: var(--vs-text-white);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ==========================================================================
+   Top Cinematic Navigation
+   ========================================================================== */
+.navbar-cinematic {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 2rem 0;
+  z-index: 100;
+  background: transparent;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: var(--vs-text-white);
+}
+
+.brand-glyph {
+  font-size: 1.25rem;
+  color: #FFFFFF;
+  line-height: 1;
+}
+
+.brand-title {
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.2em;
+  color: var(--vs-text-white);
+}
+
+.nav-link-cinematic {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: var(--vs-text-muted) !important;
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+
+.nav-link-cinematic:hover {
+  color: var(--vs-text-white) !important;
+}
+
+.btn-text-login {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: var(--vs-text-muted);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  transition: color 0.2s ease;
+}
+
+.btn-text-login:hover {
+  color: var(--vs-text-white);
+}
+
+.btn-cinematic-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--vs-text-white) !important;
+  text-decoration: none;
+  padding: 0.65rem 1.4rem;
+  border-radius: 9999px;
+  backdrop-filter: blur(12px);
+  transition: all 0.25s ease;
+}
+
+.btn-cinematic-pill:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ==========================================================================
+   Cosmic Horizon Canvas & Celestial Artwork
+   ========================================================================== */
+.hero-cinematic {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 8rem 0 4rem;
+  overflow: hidden;
+}
+
+.cosmic-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: radial-gradient(circle at 75% 30%, #150912 0%, var(--vs-void) 70%);
+}
+
+/* Diagonal sunset streak across the upper right */
+.aurora-glow-red {
+  position: absolute;
+  top: -15%;
+  right: -10%;
+  width: 75vw;
+  height: 60vh;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 59, 48, 0.85) 0%,
+    rgba(255, 107, 53, 0.7) 35%,
+    rgba(255, 190, 11, 0.4) 55%,
+    transparent 80%
+  );
+  filter: blur(80px);
+  transform: rotate(-12deg);
+  opacity: 0.9;
+}
+
+/* Electric cyan rim glow at the transition zone */
+.aurora-glow-cyan {
+  position: absolute;
+  top: 15%;
+  right: 15%;
+  width: 50vw;
+  height: 40vh;
+  background: linear-gradient(
+    125deg,
+    rgba(76, 201, 240, 0.65) 0%,
+    rgba(67, 97, 238, 0.3) 50%,
+    transparent 80%
+  );
+  filter: blur(70px);
+  transform: rotate(-8deg);
+  opacity: 0.75;
+}
+
+/* Massive shadowy black eclipse sphere */
+.celestial-eclipse {
+  position: absolute;
+  top: -10%;
+  left: 20%;
+  width: 55vw;
+  height: 55vw;
+  max-width: 820px;
+  max-height: 820px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 65% 45%, #05060A 0%, #020204 80%);
+  box-shadow: 
+    inset -20px -20px 80px rgba(0, 0, 0, 0.95),
+    15px 0 90px rgba(255, 107, 53, 0.35),
+    -10px 0 70px rgba(76, 201, 240, 0.25);
+}
+
+/* Bottom reflective lake/plane surface */
+.water-reflection-plane {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 38%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 59, 48, 0.12) 30%,
+    rgba(3, 4, 7, 0.9) 100%
+  );
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 2px 20px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(1px);
+}
+
+/* Solitary Observer Silhouetted Figure */
+.solitary-observer {
+  position: absolute;
+  bottom: 12%;
+  left: 58%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+
+.observer-figure {
+  width: 22px;
+  height: 58px;
+  background: #020203;
+  border-radius: 10px 10px 4px 4px;
+  position: relative;
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+}
+
+/* Observer helmet visor highlight */
+.observer-figure::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 8px #FFFFFF;
+}
+
+.observer-reflection {
+  width: 20px;
+  height: 48px;
+  background: linear-gradient(to bottom, rgba(2, 2, 3, 0.8) 0%, transparent 100%);
+  filter: blur(2px);
+  transform: scaleY(-1);
+  opacity: 0.6;
+}
+
+/* ==========================================================================
+   Hero Content Column
+   ========================================================================== */
+.hero-content-layer {
+  position: relative;
+  z-index: 10;
+}
+
+.hero-copy-wrapper {
+  max-width: 620px;
+}
+
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1.1rem;
+  border-radius: 9999px;
+  background: var(--vs-pill-bg);
+  border: 1px solid var(--vs-pill-border);
+  color: var(--vs-text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(10px);
+}
+
+.pill-plus {
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.hero-headline {
+  font-size: 4.25rem;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -2px;
+  color: var(--vs-text-white);
+}
+
+.btn-translucent-pill {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 0.9rem 2.2rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #FFFFFF !important;
+  text-decoration: none;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s ease;
+}
+
+.btn-translucent-pill:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.hero-subtext {
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--vs-text-muted);
+  max-width: 460px;
+}
+
+/* ==========================================================================
+   Social Proof Strip
+   ========================================================================== */
+.proof-strip {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar-cluster {
+  display: flex;
+}
+
+.avatar-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--vs-void);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  margin-left: -8px;
+}
+
+.avatar-dot:first-child {
+  margin-left: 0;
+}
+
+.avatar-1 { background: linear-gradient(135deg, #FF6B6B, #556270); }
+.avatar-2 { background: linear-gradient(135deg, #4ECDC4, #556270); }
+.avatar-3 { background: linear-gradient(135deg, #C7F464, #4ECDC4); }
+.avatar-4 { background: linear-gradient(135deg, #FF3B30, #FF6B35); }
+
+.proof-label {
+  font-size: 0.85rem;
+  color: var(--vs-text-muted);
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Minimalist Footer
+   ========================================================================== */
+.footer-cinematic {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  position: relative;
+  z-index: 10;
+}
+
+.brand-footer-text {
+  font-size: 0.8rem;
+  color: var(--vs-text-dim);
+}
+
+.footer-meta-links {
+  font-size: 0.75rem;
+  color: var(--vs-text-dim);
+  display: flex;
+  gap: 0.75rem;
+}
