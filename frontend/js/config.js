@@ -5,9 +5,35 @@
  */
 
 const CONFIG = {
-  // Backend Base URLs
-  API_BASE_URL: 'http://localhost:8000/api',
-  WS_BASE_URL: 'ws://localhost:8000/api/live-analysis',
+  // Backend Base URLs (Production-grade resolution with local dev fallback)
+  API_BASE_URL: (function() {
+    if (typeof window !== 'undefined' && window.VOICESHIELD_API_BASE_URL) {
+      return window.VOICESHIELD_API_BASE_URL;
+    }
+    if (typeof window !== 'undefined' && window.location) {
+      const port = window.location.port;
+      if (['5500', '3000', '8080'].includes(port)) {
+        return `${window.location.protocol}//${window.location.hostname}:8000/api`;
+      }
+      return `${window.location.origin}/api`;
+    }
+    return 'http://localhost:8000/api';
+  })(),
+  WS_BASE_URL: (function() {
+    if (typeof window !== 'undefined' && window.VOICESHIELD_WS_BASE_URL) {
+      return window.VOICESHIELD_WS_BASE_URL;
+    }
+    if (typeof window !== 'undefined' && window.location) {
+      const isSecure = window.location.protocol === 'https:';
+      const wsProto = isSecure ? 'wss:' : 'ws:';
+      const port = window.location.port;
+      if (['5500', '3000', '8080'].includes(port)) {
+        return `${wsProto}//${window.location.hostname}:8000/api/live-analysis`;
+      }
+      return `${wsProto}//${window.location.host}/api/live-analysis`;
+    }
+    return 'ws://localhost:8000/api/live-analysis';
+  })(),
 
   // Frontend Page Routing Map
   ROUTES: {
@@ -50,8 +76,6 @@ const CONFIG = {
   // Authoritative Backend API Endpoints (FastAPI)
   ENDPOINTS: {
     AUTH: {
-      REGISTER: '/auth/register',
-      LOGIN: '/auth/login',
       ME: '/auth/me',
       GOOGLE_LOGIN: '/auth/google/login'
     },
